@@ -73,3 +73,44 @@ ggplot(avg_mu_hat, aes(x = mu)) +
 The second plot focuses on the average estimated μ only for those simulations where the null hypothesis was rejected. While there is still a positive association between the true and estimated values, the relationship becomes more pronounced as the true effect size (μ) increases. This is because as the effect size grows, the power of the test increases, leading to a higher proportion of correct rejections. As a result, the average estimate from rejected simulations becomes more accurate and closer to the true value of μ.
 
 # Problem 3
+```{r}
+library(tidyverse)
+library(broom)
+library(purrr)
+homicides <- read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
+
+homicides_summary <- homicides %>%
+  mutate(city_state = paste(city, state, sep = ", ")) %>%
+  group_by(city_state) %>%
+  summarize(
+    total_homicides = n(),
+    unsolved_homicides = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+  )
+
+baltimore_data <- homicides_summary %>% filter(city_state == "Baltimore, MD")
+baltimore_prop_test <- prop.test(baltimore_data$unsolved_homicides, baltimore_data$total_homicides)
+baltimore_summary <- tidy(baltimore_prop_test)
+
+baltimore_estimate <- baltimore_summary %>%
+  select(estimate, conf.low, conf.high)
+
+city_proportions <- homicides_summary %>%
+  mutate(
+    prop_test = map2(unsolved_homicides, total_homicides, ~ prop.test(.x, .y)),
+    prop_summary = map(prop_test, tidy)
+  ) %>%
+  unnest(prop_summary) %>%
+  select(city_state, estimate, conf.low, conf.high)
+
+city_proportions %>%
+  ggplot(aes(x = reorder(city_state, estimate), y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
+  coord_flip() +
+  labs(
+    title = "Proportion of Unsolved Homicides by City",
+    x = "City",
+    y = "Proportion of Unsolved Homicides"
+  )
+```
+There are `r nrow(homicides)` rows and `r ncol(homicides)` in the raw data. Some variables include `uid`,`victim_last`, `victim_first`, `victim_race`, `victim_age`, `victim_sex`, `city`, `state`, `lat`, and `lon`.
