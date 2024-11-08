@@ -5,6 +5,30 @@ date: "2024-11-01"
 output: github_document
 ---
 # Probelm 1
+```{r}
+check_birthday_share <- function(n) {
+  birthdays <- sample(1:365, n, replace = TRUE)
+  return(length(birthdays) != length(unique(birthdays)))
+}
+
+set.seed(123)
+probabilities <- sapply(2:50, function(n) {
+  results <- replicate(10000, check_birthday_share(n))
+  mean(results)
+})
+
+library(ggplot2)
+data <- data.frame(group_size = 2:50, probability = probabilities)
+ggplot(data, aes(x = group_size, y = probability)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Probability of at least two people sharing a birthday",
+       x = "Group Size",
+       y = "Probability")
+
+```
+As the group size increases, the probability of at least two people sharing a birthday rises rapidly. By a group size of around 50, the probability approaches nearly 100%. 
+
 
 # Problem 2
 ```{r}
@@ -30,7 +54,6 @@ power
 ```
 
 ```{r}
-library(ggplot2)
 library(purrr)
 mu_values <- 0:6
 sim_results <- map_dfr(mu_values, function(mu) {
@@ -75,8 +98,7 @@ The second plot focuses on the average estimated μ only for those simulations w
 # Problem 3
 ```{r}
 library(tidyverse)
-library(broom)
-library(purrr)
+
 homicides <- read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
 
 homicides_summary <- homicides %>%
