@@ -29,5 +29,47 @@ power <- mean(sim_results$p_value < 0.05)
 power
 ```
 
+```{r}
+library(ggplot2)
+library(purrr)
+mu_values <- 0:6
+sim_results <- map_dfr(mu_values, function(mu) {
+  replicate(5000, sim_power(mu = mu), simplify = FALSE) %>%
+    bind_rows() %>%
+    mutate(mu = mu)
+})
+power_results <- sim_results %>%
+  group_by(mu) %>%
+  summarize(power = mean(p_value < 0.05))
+
+ggplot(power_results, aes(x = mu, y = power)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "True value of µ", y = "Power (proportion of null rejections)", 
+       title = "Power of the test vs. Effect size (µ)")
+```
+The plot demonstrates a clear positive relationship between effect size (μ) and statistical power. As the true effect size increases, the probability of correctly rejecting a false null hypothesis also increases. This indicates that larger deviations from the null hypothesis are more likely to be detected.
+
+However, it's important to note that the relationship between effect size and power is not strictly linear. As the effect size becomes very large, the power plateaus. This suggests that beyond a certain point, further increases in effect size may not substantially increase the probability of detecting a true effect.
+
+```{r}
+avg_mu_hat <- sim_results %>%
+  group_by(mu) %>%
+  summarize(
+    avg_mu_hat_all = mean(mu_hat),
+    avg_mu_hat_reject = mean(mu_hat[p_value < 0.05])
+  )
+
+ggplot(avg_mu_hat, aes(x = mu)) +
+  geom_line(aes(y = avg_mu_hat_all, color = "All Samples")) +
+  geom_line(aes(y = avg_mu_hat_reject, color = "Rejected Samples")) +
+  geom_point(aes(y = avg_mu_hat_all, color = "All Samples")) +
+  geom_point(aes(y = avg_mu_hat_reject, color = "Rejected Samples")) +
+  labs(x = "True value of µ", y = "Average estimate of µ̂", 
+       title = "Average estimate of µ̂ vs. True µ",
+       color = "Sample Type")
+
+```
+The second plot focuses on the average estimated μ only for those simulations where the null hypothesis was rejected. While there is still a positive association between the true and estimated values, the relationship becomes more pronounced as the true effect size (μ) increases. This is because as the effect size grows, the power of the test increases, leading to a higher proportion of correct rejections. As a result, the average estimate from rejected simulations becomes more accurate and closer to the true value of μ.
 
 # Problem 3
