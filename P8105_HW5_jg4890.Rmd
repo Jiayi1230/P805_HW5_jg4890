@@ -27,6 +27,7 @@ ggplot(data, aes(x = group_size, y = probability)) +
        y = "Probability")
 
 ```
+
 As the group size increases, the probability of at least two people sharing a birthday rises rapidly. By a group size of around 50, the probability approaches nearly 100%. 
 
 
@@ -73,6 +74,7 @@ ggplot(power_results, aes(x = mu, y = power)) +
   labs(x = "True value of µ", y = "Power (proportion of null rejections)", 
        title = "Power of the test vs. Effect size (µ)")
 ```
+
 The plot demonstrates a clear positive relationship between effect size (μ) and statistical power. As the true effect size increases, the probability of correctly rejecting a false null hypothesis also increases. This indicates that larger deviations from the null hypothesis are more likely to be detected.
 
 However, it's important to note that the relationship between effect size and power is not strictly linear. As the effect size becomes very large, the power plateaus. This suggests that beyond a certain point, further increases in effect size may not substantially increase the probability of detecting a true effect.
@@ -99,9 +101,11 @@ ggplot(avg_mu_hat, aes(x = mu)) +
 The red line for "All Samples" closely follows the true μ, reflecting unbiased estimation across all simulations. In contrast, the blue line for "Rejected Samples" (samples where the null hypothesis was rejected with p-value<0.05) generally lies above the red line, especially for lower values of $\hat{u}$. This occurs because the reject samples focuses on the average estimated μ only for those simulations where the null hypothesis was rejected causing a slight overestimation of μ due to potential selection bias (when only considering samples where the null was rejected, there is a tendency to include cases with higher estimates of μ). While there is still a positive association between the true and estimated values, the relationship becomes more pronounced as the true effect size (μ) increases. As the effect size increases, the power of the test improves, making the estimated values more accurate for both lines.  Consequently, the sample average of $\hat{u}$ for tests that reject the null hypothesis does not accurately equal the true μ.
 
 # Problem 3
+
+**Raw data analyze and summarize**
 ```{r}
 library(tidyverse)
-
+library(knitr)
 homicides <- read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
 
 homicides_summary <- homicides %>%
@@ -111,7 +115,13 @@ homicides_summary <- homicides %>%
     total_homicides = n(),
     unsolved_homicides = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
   )
+homicides_summary
+```
 
+There are `r nrow(homicides)` rows and `r ncol(homicides)` in the raw data. Some variables include `uid`,`victim_last`, `victim_first`, `victim_race`, `victim_age`, `victim_sex`, `city`, `state`, `lat`, and `lon`.
+
+**Analysis for Baltimore, MD**
+```{r}
 baltimore_data <- homicides_summary %>% filter(city_state == "Baltimore, MD")
 baltimore_prop_test <- prop.test(
   baltimore_data$unsolved_homicides,
@@ -122,6 +132,16 @@ baltimore_summary <- tidy(baltimore_prop_test)
 baltimore_estimate <- baltimore_summary %>%
   select(estimate, conf.low, conf.high)
 
+print(baltimore_estimate)
+baltimore_estimate %>%
+  kable(
+    caption = "Proportion of Unsolved Homicides in Baltimore, MD",
+    format = "markdown"
+  )
+```
+
+**Extract both the proportion of unsolved homicides and the confidence interval for each city.**
+```{r}
 city_proportions <- homicides_summary %>%
   mutate(
     prop_test = map2(unsolved_homicides, total_homicides, ~ prop.test(.x, .y)),
@@ -129,7 +149,11 @@ city_proportions <- homicides_summary %>%
   ) %>%
   unnest(prop_summary) %>%
   select(city_state, estimate, conf.low, conf.high)
+print(city_proportions)
+```
 
+**Plot that shows the estimates and CIs for each city**
+```{r}
 city_proportions %>%
   ggplot(aes(x = reorder(city_state, estimate), y = estimate)) +
   geom_point() +
@@ -141,4 +165,3 @@ city_proportions %>%
     y = "Proportion of Unsolved Homicides"
   )
 ```
-There are `r nrow(homicides)` rows and `r ncol(homicides)` in the raw data. Some variables include `uid`,`victim_last`, `victim_first`, `victim_race`, `victim_age`, `victim_sex`, `city`, `state`, `lat`, and `lon`.
