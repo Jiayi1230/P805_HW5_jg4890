@@ -39,8 +39,10 @@ sim_power <- function(mu, n = 30, sigma = 5, alpha = 0.05) {
   sim_data <- tibble(
     x = rnorm(n, mean = mu, sd = sigma)
   )
+  
   t_test_result <- t.test(sim_data$x, mu = 0)
   tidy_result <- broom::tidy(t_test_result)
+  
   return(tibble(
     mu_hat = tidy_result$estimate,
     p_value = tidy_result$p.value
@@ -49,7 +51,7 @@ sim_power <- function(mu, n = 30, sigma = 5, alpha = 0.05) {
 sim_results <- replicate(5000, sim_power(mu = 0, alpha = 0.05), simplify = FALSE) %>%
   bind_rows()
 
-power <- mean(sim_results$p_value < 0.05)
+power <- mean(sim_results[["p_value"]] < 0.05)
 power
 ```
 
@@ -93,7 +95,8 @@ ggplot(avg_mu_hat, aes(x = mu)) +
        color = "Sample Type")
 
 ```
-The second plot focuses on the average estimated μ only for those simulations where the null hypothesis was rejected. While there is still a positive association between the true and estimated values, the relationship becomes more pronounced as the true effect size (μ) increases. This is because as the effect size grows, the power of the test increases, leading to a higher proportion of correct rejections. As a result, the average estimate from rejected simulations becomes more accurate and closer to the true value of μ.
+
+The red line for "All Samples" closely follows the true μ, reflecting unbiased estimation across all simulations. In contrast, the blue line for "Rejected Samples" (samples where the null hypothesis was rejected with p-value<0.05) generally lies above the red line, especially for lower values of $\hat{u}$. This occurs because the reject samples focuses on the average estimated μ only for those simulations where the null hypothesis was rejected causing a slight overestimation of μ due to potential selection bias (when only considering samples where the null was rejected, there is a tendency to include cases with higher estimates of μ). While there is still a positive association between the true and estimated values, the relationship becomes more pronounced as the true effect size (μ) increases. As the effect size increases, the power of the test improves, making the estimated values more accurate for both lines.  Consequently, the sample average of $\hat{u}$ for tests that reject the null hypothesis does not accurately equal the true μ.
 
 # Problem 3
 ```{r}
@@ -110,7 +113,10 @@ homicides_summary <- homicides %>%
   )
 
 baltimore_data <- homicides_summary %>% filter(city_state == "Baltimore, MD")
-baltimore_prop_test <- prop.test(baltimore_data$unsolved_homicides, baltimore_data$total_homicides)
+baltimore_prop_test <- prop.test(
+  baltimore_data$unsolved_homicides,
+  baltimore_data$total_homicides
+)
 baltimore_summary <- tidy(baltimore_prop_test)
 
 baltimore_estimate <- baltimore_summary %>%
